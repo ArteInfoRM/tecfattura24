@@ -1,0 +1,7 @@
+/dist/ export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore
+/.editorconfig export-ignore
+/documentation/AGENTS.md export-ignore
+config*.xml export-ignore
+*.log export-ignore

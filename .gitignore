@@ -1,0 +1,6 @@
+/dist/
+*.zip
+*.log
+/config.xml
+/config_*.xml
+!/config_it.xml
