@@ -2,7 +2,7 @@
 <module>
     <name>tecfattura24</name>
     <displayName><![CDATA[Tec Fattura24 Connector]]></displayName>
-    <version><![CDATA[1.0.0]]></version>
+    <version><![CDATA[1.0.1]]></version>
     <description><![CDATA[Send PrestaShop orders to Fattura24 when a selected order status is reached.]]></description>
     <author><![CDATA[Tecnoacquisti.com]]></author>
     <tab><![CDATA[administration]]></tab>

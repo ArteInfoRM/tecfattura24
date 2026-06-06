@@ -7,9 +7,8 @@
  * @author    Tecnoacquisti.com <helpdesk@tecnoacquisti.com>
  * @copyright 2009-2026 Tecnoacquisti.com
  * @license   https://opensource.org/licenses/MIT MIT License
- * @version   1.0.0
+ * @version   1.0.1
  */
-
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -47,7 +46,7 @@ class Tecfattura24 extends Module
     {
         $this->name = 'tecfattura24';
         $this->tab = 'administration';
-        $this->version = '1.0.0';
+        $this->version = '1.0.1';
         $this->author = 'Tecnoacquisti.com';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -280,7 +279,6 @@ class Tecfattura24 extends Module
      */
     protected function postProcess()
     {
-        $errors = [];
         $apiKeyInput = trim((string) Tools::getValue(self::CFG_API_KEY));
         $currentApiKey = (string) Configuration::get(self::CFG_API_KEY);
 
@@ -297,10 +295,6 @@ class Tecfattura24 extends Module
 
         Configuration::updateValue(self::CFG_TIMEOUT, $timeout);
         Configuration::updateValue(self::CFG_DEBUG, (int) Tools::getValue(self::CFG_DEBUG));
-
-        if (!empty($errors)) {
-            return $this->displayError(implode(' ', $errors));
-        }
 
         return $this->displayConfirmation($this->l('Settings updated.'));
     }
@@ -730,11 +724,12 @@ class Tecfattura24 extends Module
                 ? $this->buildDocumentNumber($order, $documentType, $rule)
                 : '';
             if ($documentNumber !== '' && Tools::strlen($documentNumber) > self::DOCUMENT_NUMBER_MAX_LENGTH) {
-                throw new Exception(sprintf(
+                $message = sprintf(
                     $this->l('Generated Fattura24 document number exceeds %d characters: %s'),
                     self::DOCUMENT_NUMBER_MAX_LENGTH,
                     $documentNumber
-                ));
+                );
+                throw new Exception($message);
             }
 
             $xml = $this->buildDocumentXml($order, $documentType, $rule);
@@ -803,8 +798,10 @@ class Tecfattura24 extends Module
         $dom->preserveWhiteSpace = false;
         $dom->formatOutput = true;
 
-        $root = $dom->appendChild($dom->createElement('Fattura24'));
-        $document = $root->appendChild($dom->createElement('Document'));
+        $root = $dom->createElement('Fattura24');
+        $dom->appendChild($root);
+        $document = $dom->createElement('Document');
+        $root->appendChild($document);
 
         $currency = Currency::getCurrency((int) $order->id_currency);
         $invoiceAddress = new Address((int) $order->id_address_invoice);
@@ -848,14 +845,17 @@ class Tecfattura24 extends Module
         }
 
         if ($documentType !== 'C') {
-            $payments = $document->appendChild($dom->createElement('Payments'));
-            $payment = $payments->appendChild($dom->createElement('Payment'));
+            $payments = $dom->createElement('Payments');
+            $document->appendChild($payments);
+            $payment = $dom->createElement('Payment');
+            $payments->appendChild($payment);
             $this->appendText($dom, $payment, 'Date', date('Y-m-d'));
             $this->appendText($dom, $payment, 'Amount', $this->formatAmount((float) $order->total_paid));
             $this->appendText($dom, $payment, 'Paid', !empty($rule['paid_status']) ? 'true' : 'false');
         }
 
-        $rows = $document->appendChild($dom->createElement('Rows'));
+        $rows = $dom->createElement('Rows');
+        $document->appendChild($rows);
         $this->appendProductRows($dom, $rows, $order);
         $this->appendDiscountRows($dom, $rows, $order);
         $this->appendShippingRow($dom, $rows, $order, $invoiceAddress);
@@ -1121,7 +1121,8 @@ class Tecfattura24 extends Module
     protected function appendProductRows(DOMDocument $dom, DOMElement $rows, Order $order)
     {
         foreach ($order->getProducts() as $product) {
-            $row = $rows->appendChild($dom->createElement('Row'));
+            $row = $dom->createElement('Row');
+            $rows->appendChild($row);
             $description = (string) $product['product_name'];
             if (!empty($product['product_reference'])) {
                 $description .= ' [' . (string) $product['product_reference'] . ']';
@@ -1156,7 +1157,8 @@ class Tecfattura24 extends Module
                 continue;
             }
 
-            $row = $rows->appendChild($dom->createElement('Row'));
+            $row = $dom->createElement('Row');
+            $rows->appendChild($row);
             $this->appendCdata($dom, $row, 'Description', $this->l('Discount') . ': ' . (string) $discount['name']);
             $this->appendText($dom, $row, 'Qty', '1');
             $this->appendText($dom, $row, 'Price', '-' . $this->formatAmount($amount));
@@ -1191,7 +1193,8 @@ class Tecfattura24 extends Module
             }
         }
 
-        $row = $rows->appendChild($dom->createElement('Row'));
+        $row = $dom->createElement('Row');
+        $rows->appendChild($row);
         $this->appendCdata($dom, $row, 'Description', $this->l('Shipping'));
         $this->appendText($dom, $row, 'Qty', '1');
         $this->appendText($dom, $row, 'Price', $this->formatAmount($shipping));
